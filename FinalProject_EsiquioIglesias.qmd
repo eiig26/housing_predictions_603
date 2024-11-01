@@ -1,0 +1,746 @@
+---
+title: "Final Project - Introduction to Quantitative Analysis"
+author: "Esiquio Iglesias Guerra"
+date: "19/5/2024"
+format:
+  html:
+    df-print: paged
+    css: "styles.css"
+    embed-resources: true
+    self-contained-math: true
+---
+
+## From Data to Decisions: Understanding the Housing Prices determinants.
+
+### Research Question
+
+What is the influence of variables such as house features (# of bed, #of bathroom, house size, lot size), location (Region), median household income, density of population and crime index in determining housing prices using regression models?
+
+This study aims to build predictive models to assess the impact of these variables on housing prices in Massachusetts, employing regression models. By analyzing the significance and magnitude of coefficients, we aim to provide insights into the factors driving housing market dynamics and inform decision-making for various stakeholders.
+
+**Literature Review**
+
+Previous research has consistently shown that household income is a significant determinant of housing prices. Higher household income generally correlates with the ability to afford more expensive housing. For example, studies by Haurin, Parcel, and Haurin (2002) and Muth (1969) have demonstrated a positive relationship between household income levels and housing prices. This is often explained by the fact that individuals with higher incomes can afford larger loans and they are comfortable with pay more for best neighborhoods and amenities.
+
+The relationship between crime rates and housing prices is complex but well-studied. Research by Cullen and Levitt (1999) and Bajari, Benkard, and Krainer (2005) has shown that higher crime rates tend are related with a decrease housing prices in affected areas. This can be attributed to various factors, including perceptions of safety, the cost of security equipment, and insurance's cost. For instance, areas with high crime rates may experience a decrease in property values.
+
+Population density also plays a crucial role in housing prices. Research by Gyourko, Mayer, and Sinai (2006) and Saiz (2010) has highlighted the relationship between population density and housing prices. High population density areas often have a greater demand for housing, leading to higher prices. For example, areas with high population density may have more facilities for examples, universities, shopping malls, hospital, recreation facilities, and more.
+
+**-Motivation:**
+
+The housing market is a complex and dynamic system influenced by various factors, including property features, regional differences, economic conditions and demographics characteristics. Understanding the drivers of housing prices is crucial for homeowners, real estate professionals, policymakers, and investors alike. By evaluating the influence of key variables such as the number of bedrooms, number of bathrooms, lot size, house size, and location (state), we can gain valuable insights into the housing market dynamics and enhance decision-making processes. Finally, with advanced statistical techniques and the availability of a good datasets, there is an opportunity to develop predictive models that accurately predict housing prices.
+
+### Hypothesis
+
+**Hypothesis #1: Larger houses is associated with higher housing prices linked to price perception, utility, prestige and status.**
+
+Sub-hypothesis:
+
+\- H1-1: The number of bedrooms positively correlates with higher housing prices.
+
+\- H1-2: The number of bathrooms is positively associated with increased housing prices.
+
+\- H1-3: Larger house sizes in square feet are positively linked to higher house prices.
+
+\- H1-4: Increased lot or property sizes are positively correlated with higher housing prices.
+
+**Hypothesis #2: The location of the house and its social and economic relationships are significantly correlated with its price.**
+
+Sub-hypothesis:
+
+\- H2-1: Housing prices are higher in Western MA due to factors such as scenic landscapes, proximity to urban centers, and potentially lower crime rates compared to more urban areas.
+
+-   H2-2: Regions with higher average household incomes will have higher housing prices because individuals with higher incomes can afford more expensive housing based in status, prestige, amenities and comfort.
+
+\- H2-3: Areas with higher population densities will experience higher housing prices because they offer locations with access to amenities, employment opportunities, cultural attractions, and more.
+
+\- H3-3: Areas with higher crime rates are positively correlated with lower housing prices due to perceptions of insecurity, increased insurance premiums, and the need for costly security measures.
+
+### Descriptive Statistics
+
+1.  **Housing features and price dataset**
+
+The dataset is updated every 2 weeks and it has 1 CSV file with 10 columns -realtor-data.csv (1.4 Million+ entries)
+
+Data was collected from - <https://www.realtor.com/> - A real estate listing website operated by the News Corp subsidiary Move, Inc. and based in Santa Clara, California. It is the second most visited real estate listing website in the United States as of 2024, with over 100 million monthly active users.
+
+**realtor-data.csv (2,226,382 entries)**
+
+-   brokered by (categorically encoded agency/broker)
+
+-   status (Housing status - a. ready for sale or b. ready to build)
+
+-   price (Housing price, it is either the current listing price or recently sold price if the house is sold recently)
+
+-   bed (# of beds)
+
+-   bath (# of bathrooms)
+
+-   acre_lot (Property / Land size in acres)
+
+-   street (categorically encoded street address)
+
+-   city (city name)
+
+-   state (state name)
+
+-   zip_code (postal code of the area)
+
+-   house_size (house area/size/living space in square feet)
+
+-   prev_sold_date (Previously sold date)
+
+```{r}
+options(repos = "https://cloud.r-project.org")
+install.packages("rmarkdown")
+install.packages("tidyverse")
+library(tidyverse)
+library(ggplot2)
+
+# Import data
+us_housing_data <- read.csv("realtor-data.csv", colClasses = c(zip_code = "character"))
+
+us_housing_data <- subset(us_housing_data, select = -c(brokered_by, prev_sold_date))
+
+housing_mass <- us_housing_data[us_housing_data$state == "Massachusetts",]
+
+head(housing_mass)
+
+dim(housing_mass)
+
+```
+
+2.  **Counties Dataset per zipcode**
+
+This dataset include all the zip codes in the Massachusetts State, this data was collected from <https://www.unitedstateszipcodes.org/ma/>
+
+**zipcodes_counties.csv (703 entries)**
+
+-   zip (zip code)
+
+-   primary_city (Primary City in the zipcode
+
+-   county (County of the zip code)
+
+```{r}
+counties_data <- read.csv("zipcodes_counties.csv", colClasses = c(zip_code = "character"))
+
+head(counties_data)
+
+dim(counties_data)
+```
+
+3.  **Median of Household income per zip code**
+
+This dataset include all the zip codes in the Massachusetts State with the information about median of household income in \$, based on ACS 2010-2014 data. This data was collected from: <http://www.usa.com/rank/massachusetts-state--median-household-income--zip-code-rank.htm>
+
+**household_income_zipcode.csv (521 entries)**
+
+-   household_income (Value of median household income in dollars \$)
+-   zip_code (zip code)
+-   population (Total of population)
+
+```{r}
+income_data <- read.csv("household_income_zipcode.csv", colClasses = c(zip_code = "character"))
+head(income_data)
+dim(income_data)
+```
+
+4.  **Density of population per zipcode**
+
+This dataset include all the zip codes in the Massachusetts State with the information about density of population per square mile (sq mi). This data was collected from: <http://www.usa.com/rank/massachusetts-state--population-density--zip-code-rank.htm>
+
+**density_population_zipcode.csv (535 entries)**
+
+-   population_density (density of population per square mile (sq mi))
+
+-   zip_code (zip code)
+
+```{r}
+denpop_data <- read.csv("density_population_zipcode.csv", colClasses = c(zip_code = "character"))
+head(denpop_data)
+dim(denpop_data)
+```
+
+**Crime index per Cities**
+
+This dataset include all the cities in the Massachusetts State with the information about crime index.The crime index value is calculated based on the data using USA.com algorithms. It is an indicator of the crime level in a region. Higher crime index value means more crime.This data was collected from: <http://www.usa.com/rank/massachusetts-state--crime-index--city-rank.htm>
+
+**crime_index_city.csv (302 entries)**
+
+-   crime_index (Crime index in the city, higher crime index means more crime)
+
+-   city (Name of the City)
+
+```{r}
+crime_index_data <- read.csv("crime_index_city.csv")
+head(crime_index_data)
+dim(crime_index_data)
+```
+
+#### Putting all dataset together and build the main analysis data
+
+This process consist in do a several joins of dataset with the goal of putt all the data and variables together in a main dataset for continue with the analysis.
+
+```{r}
+main_housing_data <- inner_join(housing_mass, counties_data, by = "zip_code")
+
+main_housing_data <- inner_join(main_housing_data, income_data, by = "zip_code")
+
+main_housing_data <- inner_join(main_housing_data, denpop_data, by = "zip_code")
+
+main_housing_data <- inner_join(main_housing_data, crime_index_data, by = "city")
+
+dim(main_housing_data)
+
+head(main_housing_data)
+```
+
+#### Removing NA's values
+
+This process is for remove all the NA values in the dataset
+
+```{r}
+na_counts <- colSums(is.na(main_housing_data))
+main_housing_data <- na.omit(main_housing_data)
+na_counts
+dim(main_housing_data)
+```
+
+#### Selection of the variables for the analysis
+
+In this project I'll be focused in variables related with house features, population, localization, economics and crime.
+
+Dependent variable (DV)
+
+-   price (house price)
+
+```{r}
+summary(main_housing_data$price)
+
+```
+
+Independent variables (IV):
+
+1.  bed (number of bedrooms in the house)
+
+```{r}
+summary(main_housing_data$bed)
+```
+
+2.  bath (number of bathrooms in the house)
+
+```{r}
+summary(main_housing_data$bath)
+```
+
+3.  acre_lot (Property / Land size in acres)
+
+```{r}
+summary(main_housing_data$acre_lot)
+```
+
+4.  Region (Region of Massachusetts) using the following distribution:
+
+-   Western Massachusetts: Berkshire County, Franklin County, Hampton County, Hamden County.
+
+-   Central Massachusetts: Worcester County
+
+-   Northeast Massachusetts: Essex County, Middlesex County, Suffolk County
+
+-   Southeast Massachusetts: Norfolk County, Bristol County, Plymouth County, Barnstable County, Dukes County, Nantucket County
+
+```{r}
+main_housing_data <- main_housing_data %>%
+  mutate(region = case_when(
+    county %in% c('Berkshire County', 'Franklin County', 'Hampshire County', 'Hampden County') ~ "Western",
+    county %in% c('Worcester County') ~ "Central",
+    county %in% c('Essex County', 'Middlesex County', 'Suffolk County') ~ "Northeast",  
+    county %in% c('Norfolk County', 'Bristol County', 'Plymouth County', 'Barnstable County', 'Dukes County', 'Nantucket County') ~ "Southeast")) 
+
+summary_region <- main_housing_data %>%
+  group_by(region) %>%
+  summarise(count = n())
+summary_region
+```
+
+5.  house_size (Size of the house in square feet)
+
+```{r}
+summary(main_housing_data$house_size)
+```
+
+6.  household_income (Value of median household income in dollars \$)
+
+```{r}
+summary(main_housing_data$household_income)
+```
+
+7.  population_density (density of population per square mile (sq mi))
+
+```{r}
+summary(main_housing_data$population_density)
+```
+
+8.  crime_index (Crime index in the city, higher crime index means more crime)
+
+```{r}
+main_housing_data$crime_index <- gsub(',', '', main_housing_data$crime_index)
+main_housing_data$crime_index <- as.numeric(main_housing_data$crime_index)
+summary(main_housing_data$crime_index)
+```
+
+### Visualization
+
+#### Number of Bedrooms
+
+```{r}
+ggplot(main_housing_data, aes(x = "", y = bed)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Boxplot of bed (main data)", y = "Values") +
+  theme_minimal()
+```
+
+**Interpretation:** This boxplot show that the variable bed have a lot of outliers, so next step is proceed to remove the outliers, creating a function and use the quantiles a IQR.
+
+```{r}
+remove_outliers <- function(data, column_name) {
+  Q1 <- quantile(data[[column_name]], 0.25)
+  Q3 <- quantile(data[[column_name]], 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  data <- data[data[[column_name]] >= lower_bound & data[[column_name]] <= upper_bound, ]
+  return(data)
+}
+
+clean_housing_data <- remove_outliers(main_housing_data, "bed")
+
+ggplot(clean_housing_data, aes(x = "", y = bed)) +
+  geom_boxplot(fill = "navyblue", color = "black") +
+  labs(title = "Boxplot of number of bedrooms (Clean data)", y = "Values") +
+  theme_minimal()
+
+dim(clean_housing_data)
+```
+
+**Interpretation**: This new boxplot for the variable bed, shows a better distribution for the numbers of bedrooms in the dataset.
+
+#### Number of Bathrooms
+
+```{r}
+ggplot(clean_housing_data, aes(x = "", y = bath)) +
+  geom_boxplot(fill = "darkred", color = "black") +
+  labs(title = "Boxplot of number of bathrooms (main data)", y = "Values") +
+  theme_minimal()
+```
+
+**Interpreation:** This box plot for the variable bath shows some outliers out of the box, so proceed to remove the outliers using the function before created.
+
+```{r}
+clean_housing_data <- remove_outliers(clean_housing_data, "bath")
+
+ggplot(clean_housing_data, aes(x = "", y = bath)) +
+  geom_boxplot(fill = "darkred", color = "black") +
+  labs(title = "Boxplot of number of bathrooms (clean data)", y = "Values") +
+  theme_minimal()
+
+dim(clean_housing_data)
+```
+
+**Interpreation:** This new box plot for bath, shows how the outliers was removed. \#### Acre_lot
+
+```{r}
+ggplot(clean_housing_data, aes(x = "", y = acre_lot)) +
+  geom_boxplot(fill = "darkgreen", color = "black") +
+  labs(title = "Boxplot of acre_lot (main data)", y = "Values") +
+  theme_minimal()
+```
+
+**Interpreation:** This boxplot for acre lot shows some significant outliers.
+
+```{r}
+clean_housing_data <- remove_outliers(clean_housing_data, "acre_lot")
+
+ggplot(clean_housing_data, aes(x = "", y = acre_lot)) +
+  geom_boxplot(fill = "darkgreen", color = "black") +
+  labs(title = "Boxplot of acre_lot (clean data)", y = "Values") +
+  theme_minimal()
+
+dim(clean_housing_data)
+```
+
+**Interpreation:** This new boxplot for acre lot, show a better distribution of the values for this variable.
+
+#### House size
+
+```{r}
+ggplot(clean_housing_data, aes(x = "", y = house_size)) +
+  geom_boxplot(fill = "magenta4", color = "black") +
+  labs(title = "Boxplot of house size (main data)", y = "Values") +
+  theme_minimal()
+```
+
+**Interpreation:** This box plot for the variable house size show some outliers out ob the box.
+
+```{r}
+clean_housing_data <- remove_outliers(clean_housing_data, "house_size")
+
+ggplot(clean_housing_data, aes(x = "", y = house_size)) +
+  geom_boxplot(fill = "magenta4", color = "black") +
+  labs(title = "Boxplot of house size (clean data)", y = "Values") +
+  theme_minimal()
+
+dim(clean_housing_data)
+```
+
+**Interpreation:** After of the process for remove outliers, this box plot shows a better distribution for the variable house size.
+
+#### Household Income
+
+```{r}
+ggplot(clean_housing_data, aes(x = household_income)) +
+  geom_histogram(binwidth = 5000, fill = "royalblue1", color = "black") +
+  labs(title = "Histogram of Household Income", x = "Household Income", y = "Frequency") +theme_minimal()
+```
+
+**Interpreation:** Analyzing the variable household income, this histogram show that the most of the values are between 50k and 100k dollars per year.
+
+#### Density of Population
+
+```{r}
+ggplot(clean_housing_data, aes(x = population_density)) +
+  geom_histogram(binwidth = 1000, fill = "orange4", color = "black") +
+  labs(title = "Histogram of Density of Population", x = "Density of Population", y = "Frequency") +theme_minimal()
+```
+
+**Interpretation:** This histogram shows that density of population has a left-skewed distribution with most of the values less than 100 persons for square mile.
+
+#### Crime Index
+
+```{r}
+ggplot(clean_housing_data, aes(x = crime_index)) +
+  geom_histogram(binwidth = 100, fill = "salmon", color = "black") +
+  labs(title = "Histogram of Crime Index", x = "Crime Index", y = "Frequency") +theme_minimal()
+```
+
+**Interpretation:** This histogram for crime index shows a left-skewed distribution, but with a high values near to 270.
+
+#### Price
+
+```{r}
+ggplot(clean_housing_data, aes(x = "", y = price)) +
+  geom_boxplot(fill = "olivedrab", color = "black") +
+  labs(title = "Boxplot of Price (main data)", y = "Values") +
+  theme_minimal()
+```
+
+**Interpretation:** This box plot for the price variable shows some outliers.
+
+```{r}
+clean_housing_data <- remove_outliers(clean_housing_data, 'price')
+
+ggplot(clean_housing_data, aes(x = "", y = price)) +
+  geom_boxplot(fill = "olivedrab", color = "black") +
+  labs(title = "Boxplot of Price (clean data)", y = "Values") +
+  theme_minimal()
+
+dim(clean_housing_data)
+```
+
+**Interpretation:** After of the process of remove outliers, this new boxplot shows a best distribution for the values for the variable price.
+
+#### Correlations
+
+**Hypothesis #1**
+
+```{r}
+hypo1_corrdata <- select(clean_housing_data, price,bed, bath, acre_lot, house_size)
+
+install.packages("GGally")  
+library(GGally)
+
+pairs_plot_h1 <- ggpairs(hypo1_corrdata)
+
+pairs_plot_h1
+
+
+```
+
+**Interpretation:** This scatter plot shows a strong correlation between price and house size. However, it does not show a strong linear correlation between the variables "acre lot" and price. Additionally, it does not clearly shows a correlation between the variables "bed" and price, and between the variables "bath" and price
+
+**Hypothesis #2**
+
+```{r}
+hypo2_corrdata <- select(clean_housing_data, price,household_income, population_density, crime_index)
+
+pairs_plot_h2 <- ggpairs(hypo2_corrdata)
+
+pairs_plot_h2
+```
+
+**Interpretation:** This scatter plot shows a clear trend: as household size increases, the price also increases. There is definitely a strong correlation between these variables. However, this plot doesn't clearly show a correlation between the variables "density of population" and price, although there might be a slight trend of increasing prices with higher population density. Additionally, it doesn't clearly show a correlation between the variables "crime index" and price. However, the values are mostly grouped in the lower left, indicating low prices for houses in areas with low crime indices.
+
+### Hypothesis testing
+
+#### Hypothesis 1
+
+**Hypothesis #1: Larger houses is associated with higher housing prices linked to price perception, utility, prestige and status.**
+
+Sub-hypothesis: **- H1-1: The number of bedrooms positively correlates with higher housing prices.**
+
+```{r}
+model1_h1_1 <- lm(price ~ bed, data = clean_housing_data)
+
+summary(model1_h1_1)
+```
+
+**Interpretation:** The model equation is: price = 299598 + 67793 × bed
+
+For each additional bedroom, the estimated price increases by \$67,793.00. This model suggests that the number of bedrooms has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that the number of bedrooms is positively correlated with higher housing prices.
+
+**- H1-2: The number of bathrooms is positively associated with increased housing prices.**
+
+```{r}
+model2_h1_2 <- lm(price ~ bath, data = clean_housing_data)
+
+summary(model2_h1_2)
+```
+
+**Interpretation:** The model equation is: price = 239320 + 136807 × bath
+
+For each additional bathrooms, the estimated price increases by \$136,807.00. This model suggests that the number of bathrooms has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that the number of bathrooms is positively is positively associated with increased housing prices.
+
+**- H1-3: Larger house sizes in square feet are positively linked to higher house prices.**
+
+```{r}
+model3_h1_3 <- lm(price ~ house_size, data = clean_housing_data)
+
+summary(model3_h1_3)
+```
+
+**Interpretation:** The model equation is: price = 198600 + 184.50 × sq-feet(house size)
+
+For each additional square foot in house size, the estimated price increases by \$184.50. This model suggests that house size has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that Larger house sizes in square feet are positively are positively linked to higher house prices..
+
+**- H1-4: Increased lot or property sizes are positively correlated with higher housing prices.**
+
+```{r}
+model4_h1_4 <- lm(price ~ acre_lot, data = clean_housing_data)
+
+summary(model4_h1_4)
+```
+
+**Interpretation:** The model equation is: price = 497709 + 62158 × acre_lot
+
+For each additional acre in lot size, the estimated price increases by \$62,158.00. This model suggests that lot size has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that Increased lot or property sizes are positively correlated with higher housing prices.
+
+**Hypothesis #2: The location of the house and its social and economic relationships are significantly correlated with its price.**
+
+Sub-hypothesis: - H2-1: Housing prices are higher in Western MA due to factors such as scenic landscapes, proximity to urban centers, and potentially lower crime rates compared to more urban areas.
+
+```{r}
+clean_housing_data$region <- as.factor(clean_housing_data$region)
+clean_housing_data$region <- relevel(clean_housing_data$region, ref = "Western")
+model5_h2_1 <- lm(price ~ region, data = clean_housing_data)
+summary(model5_h2_1)
+```
+
+**Interpretation:**
+
+The model equation is: price = 288345 + 93632×regionCentral + 349954×regionNortheast + 279733×regionSoutheast
+
+Compared to the baseline Western region, the estimated price increases by \$93,632.00 for houses in the Central region, by \$349,954.00 for houses in the Northeast region, and by \$279,733.00 for houses in the Southeast region. This model suggests that region has a statistically significant effect on the price of houses.
+
+Conclusion: Housing prices vary significantly across different regions. In particular, prices tend to be higher in the Central, Northeast, and Southeast regions compared to the baseline Western region. This model explain an evidence for **reject** the sub hypothesis #1 for the hypothesis #2, the house price doesn't increase directly in Western, Massachusetts, but this model just can predict a 34.75% of the houses prices in the dataset.
+
+-   H2-2: Regions with higher average household incomes will have higher housing prices because individuals with higher incomes can afford more expensive housing based in status, prestige, amenities and comfort.
+
+```{r}
+model6_h2_2 <- lm(price ~ household_income, data = clean_housing_data)
+
+summary(model6_h2_2)
+```
+
+**Interpretation:**
+
+The model equation is: price = 207500 + 4.25 x household_income
+
+For each additional \$ that increase in household income, the estimated price increases by \$4.25. This model suggests that household income has a statistically significant effect on the price of houses.
+
+Conclusion: Regions with higher average household incomes tend to have higher housing prices. This **supports** the sub-hypothesis that regions with higher average household incomes will have higher housing prices because individuals with higher incomes can afford more expensive housing based on factors such as status, prestige, amenities, and comfort.
+
+-   H2-3: Areas with higher population densities will experience higher housing prices because they offer locations with access to amenities, employment opportunities, cultural attractions, and more.
+
+```{r}
+model7_h2_3 <- lm(price ~ population_density, data = clean_housing_data)
+
+summary(model7_h2_3)
+```
+
+**Interpretation:**
+
+The model equation is:
+
+price = 481200 + 12.78 x population_density
+
+For each additional unit increase in population density, the estimated price increases by \$12.78. This model suggests that population density has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that Areas with higher population densities will experience higher housing prices because they offer locations with access to amenities, employment opportunities, cultural attractions, and more.
+
+-   H2-4: Areas with higher crime rates are positively correlated with lower housing prices due to perceptions of insecurity, increased insurance premiums, and the need for costly security measures.
+
+```{r}
+model8_h2_4 <- lm(price ~ crime_index, data = clean_housing_data)
+
+summary(model8_h2_4)
+```
+
+**Interpretation:**
+
+The model equation is: *price = 619134 - 77.59 x crime_index*
+
+For each unit increase in the crime index, the estimated price decreases by \$77.59. This model suggests that the crime index has a statistically significant effect on the price of houses.
+
+Conclusion: This **supports** the sub-hypothesis that Areas with higher crime rates are positively correlated with lower housing prices due to perceptions of insecurity, increased insurance premiums, and the need for costly security measures.
+
+#### Final model
+
+For this final model, all the variables are included, because are statistical significant and has impact in the price.
+
+```{r}
+model9_final <- lm(price ~ house_size + bed + bath + region + population_density + household_income + crime_index, data = clean_housing_data)
+
+summary(model9_final)
+```
+
+**Interpretation:**
+
+**Coefficients:**
+
+-   House Size (house_size): For every unit **increase** in house size, the price is estimated to increase by \$111.60.
+-   Bedrooms (bed): Each additional bedroom **decreases** the price by \$9,635.
+-   Bathrooms (bath): Each additional bathroom **increases** the price by \$61,600.
+-   Region (region): Compared to a reference region (Western), the Central region tends to have prices \$28,330 higher, the Northeast region tends to have prices \$179,800 higher, and the Southeast region tends to have prices \$182,200 higher.
+-   Population Density (population_density): For every one-unit increase in population density, the price **increases** by \$16.25.
+-   Household Income (household_income): For every one-unit increase in household income, the price increases by \$2.63.
+-   Crime Index (crime_index): For every one-unit increase in the crime index, the price **decreases** by \$12.93.
+
+**Significance:** In this model, all variables have highly significant effects on price.
+
+**R-squared:** The R-squared value (0.6585) indicates that approximately 65.85% of the variability in house prices can be explained by this model.
+
+**Conclusion:** Overall, this model suggests that house size, bedrooms, bathrooms, region, population density, household income, and crime index are significant predictors of house prices.
+
+### Model Comparisons
+
+```{r}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("broom")
+library(broom)
+
+Model_names <- c("model1_h1_1","model2_h1_2","model3_h1_3","model4_h1_4","model5_h2_1", "model6_h2_2", "model7_h2_3","model8_h2_4","model9_final")
+
+`BIC` <- c(glance(model1_h1_1)$BIC,glance(model2_h1_2)$BIC, 
+            glance(model3_h1_3)$BIC,glance(model4_h1_4)$BIC,glance(model5_h2_1)$BIC, glance(model6_h2_2)$BIC, glance(model7_h2_3)$BIC, glance(model8_h2_4)$BIC, glance(model9_final)$BIC)
+
+`AIC` <- c(glance(model1_h1_1)$AIC,glance(model2_h1_2)$AIC, 
+            glance(model3_h1_3)$AIC,glance(model4_h1_4)$AIC,glance(model5_h2_1)$AIC, glance(model6_h2_2)$AIC, glance(model7_h2_3)$AIC, glance(model8_h2_4)$AIC, glance(model9_final)$AIC)
+
+`Adjusted R-square` <- c(glance(model1_h1_1)$adj.r.squared,glance(model2_h1_2)$adj.r.squared, 
+            glance(model3_h1_3)$adj.r.squared,glance(model4_h1_4)$adj.r.squared,glance(model5_h2_1)$adj.r.squared, glance(model6_h2_2)$adj.r.squared, glance(model7_h2_3)$adj.r.squared, glance(model8_h2_4)$adj.r.squared, glance(model9_final)$adj.r.squared)
+            
+num_observations <- c(nobs(model1_h1_1), nobs(model2_h1_2), nobs(model3_h1_3),
+                      nobs(model4_h1_4), nobs(model5_h2_1), nobs(model6_h2_2),
+                      nobs(model7_h2_3), nobs(model8_h2_4), nobs(model9_final))
+
+models_summary <- data.frame(Model_names, num_observations, `AIC`, `BIC`, `Adjusted R-square`)
+
+models_summary
+```
+
+**Interpretation:** When evaluating the models, I considered several key metrics: Akaike Information Criterion (AIC), Bayesian Information Criterion (BIC), and Adjusted R-Square.
+
+AIC and BIC: Lower values indicate a better model fit. Model9_final has the lowest AIC (446,881.6) and BIC (446,966.7) among all the models. This suggests that model9_final fits the data well with appropriate complexity.
+
+Adjusted R-Square: Higher values indicate a better fit of the model to the data while adjusting for the number of predictors. Model9_final has the highest Adjusted R-Square (0.65835987), indicating it explains the highest proportion of variance in the dependent variable compared to other models.
+
+### Diagnostics
+
+```{r}
+par(mfrow = c(2,3))  
+
+plot(model9_final, which = 1:6, col = "royalblue4")
+  
+```
+
+**Interpretation**
+
+-   Residuals vs Fitted Values: Points around the horizontal line at 0, indicating that the residuals have constant variance across the range of fitted values.
+-   Q-Q Residuals: the straight line shows that the residuals are normally distributed. - Scale-Location Plot: scatter of points around a horizontal line, a constant variance.
+-   Cook's Distance Plot: Just a few points have a high Cook's distance.
+-   Residuals vs Leverage: The most of the points have a low leverage.
+
+```{r}
+install.packages("stargazer")
+library(stargazer)
+
+stargazer(model9_final, type = 'text')
+
+```
+
+```{r}
+install.packages("sjPlot")
+library(sjPlot)
+library(ggplot2)
+
+final_plot <- plot_model(model9_final, show.values = FALSE) +
+  ggtitle("Price Estimators ")
+
+# Modify the plot to adjust the position of the coefficient labels
+final_plot <- final_plot + geom_text(aes(label = paste0(round(estimate, 2), "")), vjust = -0.5)
+
+# Display the modified plot
+final_plot
+
+ggsave("stimators_plot.jpg", plot = final_plot, dpi = 300)
+```
+
+**Region and Price**
+
+```{r}
+region_plot <- ggplot(clean_housing_data, aes(x = region, y = price, fill = region)) +
+  geom_boxplot(color = "black") +
+  labs(title = "Box Plot of Price by Region",
+       x = "Region",
+       y = "Price") +
+  scale_fill_manual(values = c("Western" = "seagreen", "Central" = "royalblue4", "Northeast" = "brown", "Southeast" = "darkorange3")) +
+  theme(axis.text = element_text(size = 12),  
+        axis.title = element_text(size = 14)) 
+
+#ggsave("region_plot.jpg", plot = region_plot, dpi = 300)
+
+region_plot
+```
+
+**Interpretation:** This box plot is so interesting, because show the significant influence of the region in price, Northeast with the higher mean in housing prices houses and Western with the lower.
+
+### CONCLUSION
+
+**Key Factors:** - House size, bedrooms, bathrooms, region, population density, household income, and crime index are significant predictors of house prices.
+
+**Impact on Price:** - House size: Each unit increase raises the price by \$111.60. - Bedrooms: Each additional bedroom decreases the price by \$9,635. - Bathrooms: Each additional bathroom increases the price by \$61,600. - Region: Central, Northeast, and Southeast regions have significantly higher prices compared to the Western region. - Population Density: Price increases by \$16.25 for every unit increase in population density. - Household Income: Price increases by \$2.63 for every unit increase in household income. - Crime Index: Price decreases by \$12.93 for every unit increase in the crime index.
+
+**Significance:** All variables have highly significant effects on price.
+
+**Model Performance:** The model explains approximately 65.85% of the variability in house prices (R-squared = 0.6585).
+
+The analysis shows a comprehensive understanding of the factors influencing housing prices. The model indicates that several key variables significantly impact housing prices. Notably, larger house sizes, increased bathroom numbers, and higher population densities correlate with higher prices, while additional bedrooms and a higher crime index lead to price decreases. However, regional differences play a relevant role, with the Central, Northeast, and Southeast regions exhibiting notably higher prices compared to the reference region (Western). Household income also is as a significant predictor affecting housing prices. These findings show how diverse factors impact the housing markets, from property characteristics to socioeconomic indicators. The model's strong explanatory power, as reflected by its high R-squared value, underscores its utility in understanding and predicting housing price variations in Massachusetts.
